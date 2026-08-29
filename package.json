@@ -1,0 +1,35 @@
+{
+    "name": "joplin-plugin-vim-im-select",
+    "version": "0.1.0",
+    "private": true,
+    "description": "Joplin Vim input-method switcher for macOS",
+    "license": "MIT",
+    "keywords": [
+        "joplin-plugin",
+        "vim",
+        "input-method",
+        "macos"
+    ],
+    "scripts": {
+        "build": "webpack --config webpack.config.js",
+        "dist": "npm run build && node scripts/createArchive.js",
+        "typecheck": "tsc --noEmit -p tsconfig.json",
+        "test:core": "node -e \"require('fs').rmSync('.test-dist',{recursive:true,force:true})\" && tsc -p tsconfig.test.json && node --test tests/core.test.js",
+        "test": "npm run typecheck && npm run test:core"
+    },
+    "devDependencies": {
+        "@codemirror/state": "^6.5.2",
+        "@codemirror/view": "^6.38.1",
+        "@types/node": "^22.10.0",
+        "copy-webpack-plugin": "^12.0.2",
+        "fs-extra": "^11.3.0",
+        "tar": "^7.4.3",
+        "ts-loader": "^9.5.2",
+        "typescript": "^5.8.3",
+        "webpack": "^5.99.9",
+        "webpack-cli": "^6.0.1"
+    },
+    "files": [
+        "publish"
+    ]
+}
