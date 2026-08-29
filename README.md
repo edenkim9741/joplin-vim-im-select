@@ -4,7 +4,7 @@ A Joplin Desktop plugin that automatically changes the macOS input method accord
 
 - **Normal / Visual** → switches to a configured input method, defaulting to `com.apple.keylayout.ABC`.
 - **Insert / Replace** → restores the input method that was active before leaving Insert/Replace mode.
-- Uses `macism` and Node's `execFile` (no shell interpolation).
+- Uses `im-select` and Node's `execFile` (no shell interpolation).
 - Targets Joplin's CodeMirror 6 Markdown editor.
 
 ## 1. Prerequisites
@@ -13,19 +13,9 @@ A Joplin Desktop plugin that automatically changes the macOS input method accord
 
 Use Joplin Desktop 3.1 or newer and enable Vim keybindings in Joplin's editor settings.
 
-### macism
+### im-select
 
-Install `macism` with Homebrew:
-
-```bash
-brew install macism
-```
-
-Check that it works:
-
-```bash
-macism
-```
+use your own `im-select` software.
 
 It should print the current input method identifier, for example:
 
@@ -36,19 +26,22 @@ com.apple.inputmethod.Korean.2SetKorean
 Try switching to ABC/English:
 
 ```bash
-macism com.apple.keylayout.ABC
+im-select com.apple.keylayout.ABC
 ```
 
-Apple Silicon Homebrew usually installs it here:
+Installation examples:
 
-```text
-/opt/homebrew/bin/macism
+```bash
+# Homebrew on Apple Silicon
+brew install im-select
+
+# Or download from https://github.com/daipeihust/im-select
 ```
 
-Intel Homebrew usually installs it here:
+Confirm the installed path:
 
-```text
-/usr/local/bin/macism
+```bash
+which im-select
 ```
 
 ## 2. Build
@@ -87,25 +80,21 @@ npm run dist
 
 Open Joplin settings and find **Vim IM Select**.
 
-### macism executable path
+### im-select executable path
 
-Default:
-
-```text
-/opt/homebrew/bin/macism
-```
-
-On an Intel Mac, change it to:
+Default (if installed via Homebrew):
 
 ```text
-/usr/local/bin/macism
+/opt/homebrew/bin/im-select
 ```
 
-You can confirm the correct path in Terminal with:
+If you compiled or downloaded manually, find the path with:
 
 ```bash
-which macism
+which im-select
 ```
+
+Copy this exact path into the plugin settings.
 
 ### Normal mode input method
 
@@ -118,7 +107,7 @@ com.apple.keylayout.ABC
 To find an identifier for another input method, switch to it in macOS and run:
 
 ```bash
-macism
+im-select
 ```
 
 ### Restore Insert mode input method
@@ -165,12 +154,12 @@ The content script runs inside Joplin's CodeMirror 6 Markdown editor.
 Check these in order:
 
 ```bash
-which macism
-macism
-macism com.apple.keylayout.ABC
+which im-select
+im-select
+im-select com.apple.keylayout.ABC
 ```
 
-Then make sure **Vim IM Select → macism executable path** exactly matches `which macism`.
+Then make sure **Vim IM Select → im-select executable path** exactly matches `which im-select`.
 
 Because Joplin is a GUI application, relying on the shell `PATH` can be unreliable. An absolute executable path is recommended.
 
@@ -195,7 +184,7 @@ You should see messages similar to:
 [Vim IM Select] Vim mode: insert
 ```
 
-If Vim mode messages appear but `macism` fails, the problem is normally the executable path or macOS permissions/environment.
+If Vim mode messages appear but `im-select` fails, the problem is normally the executable path or macOS permissions/environment.
 
 ## 8. Development layout
 
@@ -209,7 +198,7 @@ joplin-vim-im-select/
 │   ├── contentScripts/
 │   │   └── vimModeWatcher.ts    # CodeMirror/Vim mode detection
 │   ├── core/
-│   │   ├── imController.ts      # macism execFile wrapper
+│   │   ├── imController.ts      # im-select execFile wrapper
 │   │   ├── mode.ts              # Vim mode normalization
 │   │   └── stateMachine.ts      # IM transition state
 │   ├── index.ts                 # Joplin plugin entry point
