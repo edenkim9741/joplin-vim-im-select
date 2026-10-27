@@ -1,21 +1,26 @@
 import { execFile } from 'node:child_process';
 import type { InputMethodController } from './stateMachine';
 
-export interface MacismControllerOptions {
+export interface ExternalInputMethodControllerOptions {
     executablePath: string;
+    setInputMethodArgsTemplate?: string[];
     timeoutMs?: number;
 }
 
-export class MacismController implements InputMethodController {
+export class ExternalInputMethodController implements InputMethodController {
     private readonly executablePath: string;
+    private readonly setInputMethodArgsTemplate: string[];
     private readonly timeoutMs: number;
 
-    constructor(options: MacismControllerOptions) {
+    constructor(options: ExternalInputMethodControllerOptions) {
         this.executablePath = options.executablePath.trim();
+        this.setInputMethodArgsTemplate = options.setInputMethodArgsTemplate?.length
+            ? options.setInputMethodArgsTemplate
+            : ['{inputMethod}'];
         this.timeoutMs = options.timeoutMs ?? 3000;
 
         if (!this.executablePath) {
-            throw new Error('macism executable path is empty.');
+            throw new Error('Input method command path is empty.');
         }
     }
 
@@ -24,7 +29,7 @@ export class MacismController implements InputMethodController {
         const inputMethodId = stdout.trim();
 
         if (!inputMethodId) {
-            throw new Error('macism returned an empty input method identifier.');
+            throw new Error('Input method command returned an empty input method identifier.');
         }
 
         return inputMethodId;
@@ -36,7 +41,7 @@ export class MacismController implements InputMethodController {
             throw new Error('Target input method identifier is empty.');
         }
 
-        await this.run([target]);
+        await this.run(formatInputMethodArgs(this.setInputMethodArgsTemplate, target));
     }
 
     private run(args: string[]): Promise<string> {
@@ -62,3 +67,78 @@ export class MacismController implements InputMethodController {
         });
     }
 }
+
+export function formatInputMethodArgs(argsTemplate: string[], inputMethodId: string): string[] {
+    if (!argsTemplate.length) return [inputMethodId];
+
+    let replaced = false;
+    const args = argsTemplate.map((arg) => {
+        if (arg.includes('{inputMethod}')) {
+            replaced = true;
+            return arg.replace(/\{inputMethod\}/g, inputMethodId);
+        }
+        return arg;
+    });
+
+    if (!replaced) {
+        args.push(inputMethodId);
+    }
+
+    return args;
+}
+
+export function parseCommandLineArgs(value: string): string[] {
+    const args: string[] = [];
+    let current = '';
+    let quote: '"' | '\'' | null = null;
+    let escaping = false;
+
+    for (const char of value.trim()) {
+        if (escaping) {
+            current += char;
+            escaping = false;
+            continue;
+        }
+
+        if (char === '\\') {
+            escaping = true;
+            continue;
+        }
+
+        if (quote) {
+            if (char === quote) {
+                quote = null;
+            } else {
+                current += char;
+            }
+            continue;
+        }
+
+        if (char === '"' || char === '\'') {
+            quote = char;
+            continue;
+        }
+
+        if (/\s/.test(char)) {
+            if (current) {
+                args.push(current);
+                current = '';
+            }
+            continue;
+        }
+
+        current += char;
+    }
+
+    if (escaping) {
+        current += '\\';
+    }
+
+    if (current) {
+        args.push(current);
+    }
+
+    return args;
+}
+
+export class MacismController extends ExternalInputMethodController {}

@@ -1,6 +1,6 @@
 import joplin from 'api';
 import { ContentScriptType } from 'api/types';
-import { MacismController } from './core/imController';
+import { ExternalInputMethodController, parseCommandLineArgs } from './core/imController';
 import { isVimMode, normalizeVimMode } from './core/mode';
 import { InputMethodStateMachine } from './core/stateMachine';
 import { loadSettings, registerSettings } from './settings';
@@ -25,33 +25,44 @@ async function handleModeMessage(message: unknown): Promise<void> {
     const settings = await loadSettings();
     log(settings.debugLogging, 'Vim mode:', typedMessage.mode);
 
-    if (process.platform !== 'darwin') {
+    if (process.platform !== 'darwin' && process.platform !== 'win32') {
         if (!warnedUnsupportedPlatform) {
             warnedUnsupportedPlatform = true;
-            console.warn('[Vim IM Select] v0.1.0 supports automatic IM switching on macOS only.');
+            console.warn('[Vim IM Select] Automatic IM switching is supported on macOS and Windows only.');
         }
         return;
     }
 
-    if (!settings.macismPath) {
-        console.error('[Vim IM Select] macism executable path is empty. Check plugin settings.');
+    const executablePath = process.platform === 'win32'
+        ? settings.windowsCommandPath
+        : settings.macismPath;
+    const normalModeInputMethod = process.platform === 'win32'
+        ? settings.windowsNormalModeInputMethod
+        : settings.normalModeInputMethod;
+    const setInputMethodArgsTemplate = process.platform === 'win32'
+        ? parseCommandLineArgs(settings.windowsSetInputMethodArguments)
+        : ['{inputMethod}'];
+
+    if (!executablePath) {
+        console.error('[Vim IM Select] Input method command path is empty. Check plugin settings.');
         return;
     }
 
-    if (!settings.normalModeInputMethod) {
+    if (!normalModeInputMethod) {
         console.error('[Vim IM Select] Normal mode input method is empty. Check plugin settings.');
         return;
     }
 
-    const controller = new MacismController({
-        executablePath: settings.macismPath,
+    const controller = new ExternalInputMethodController({
+        executablePath,
+        setInputMethodArgsTemplate,
     });
 
     const result = await stateMachine.transition(
         normalizeVimMode(typedMessage.mode),
         controller,
         {
-            normalModeInputMethod: settings.normalModeInputMethod,
+            normalModeInputMethod,
             restoreInsertInputMethod: settings.restoreInsertInputMethod,
         },
     );

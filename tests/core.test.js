@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
+const { formatInputMethodArgs, parseCommandLineArgs } = require('../.test-dist/src/core/imController.js');
 const { normalizeVimMode } = require('../.test-dist/src/core/mode.js');
 const { InputMethodStateMachine } = require('../.test-dist/src/core/stateMachine.js');
 
@@ -26,6 +27,22 @@ test('normalizes Vim modes into insert and command classes', () => {
     assert.equal(normalizeVimMode('visual'), 'command');
     assert.equal(normalizeVimMode('insert'), 'insert');
     assert.equal(normalizeVimMode('replace'), 'insert');
+});
+
+test('parses Windows command argument templates', () => {
+    assert.deepEqual(parseCommandLineArgs('{inputMethod}'), ['{inputMethod}']);
+    assert.deepEqual(parseCommandLineArgs('/set "{inputMethod}"'), ['/set', '{inputMethod}']);
+    assert.deepEqual(parseCommandLineArgs('--profile "English US" {inputMethod}'), [
+        '--profile',
+        'English US',
+        '{inputMethod}',
+    ]);
+});
+
+test('formats input method argument templates', () => {
+    assert.deepEqual(formatInputMethodArgs(['{inputMethod}'], '1033'), ['1033']);
+    assert.deepEqual(formatInputMethodArgs(['/set', '{inputMethod}'], '1033'), ['/set', '1033']);
+    assert.deepEqual(formatInputMethodArgs(['/set'], '1033'), ['/set', '1033']);
 });
 
 test('initial command mode forces the configured normal-mode IM', async () => {
@@ -82,7 +99,7 @@ test('duplicate mode-class transitions do not execute IM commands', async () => 
     assert.deepEqual(controller.calls, []);
 });
 
-test('restore can be disabled while still remembering the insert IM', async () => {
+test('restore disabled does not read or restore the insert IM', async () => {
     const machine = new InputMethodStateMachine();
     const controller = new FakeController('com.apple.inputmethod.Korean.2SetKorean');
     const options = {
@@ -96,8 +113,5 @@ test('restore can be disabled while still remembering the insert IM', async () =
     await machine.transition('insert', controller, options);
 
     assert.deepEqual(controller.calls, []);
-    assert.equal(
-        machine.snapshot().rememberedInsertInputMethod,
-        'com.apple.inputmethod.Korean.2SetKorean',
-    );
+    assert.equal(machine.snapshot().rememberedInsertInputMethod, null);
 });

@@ -35,7 +35,7 @@ export class InputMethodStateMachine {
 
         if (nextModeClass === 'command') {
             // Normal/Visual mode
-            if (previousModeClass === 'insert') {
+            if (previousModeClass === 'insert' && options.restoreInsertInputMethod) {
                 // Exiting insert mode: remember the current input method
                 const current = (await controller.getCurrent()).trim();
                 if (current) {
