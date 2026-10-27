@@ -1,4 +1,4 @@
-import { ViewPlugin, type EditorView } from '@codemirror/view';
+import type { EditorView } from '@codemirror/view';
 import { isVimMode, type VimMode } from '../core/mode';
 
 type PostMessage = (message: unknown) => Promise<unknown>;
@@ -69,7 +69,14 @@ function findCompatibilityEditor(control: CodeMirrorControlLike, view: EditorVie
 export default (context: ContentScriptContext) => {
     return {
         plugin: (codeMirrorControl: CodeMirrorControlLike) => {
-            if (!codeMirrorControl.cm6) return;
+            // Joplin invokes this CodeMirror 6 script in both editors.
+            // The legacy editor has its own script without CodeMirror 6 imports.
+            if (!codeMirrorControl.cm6 || typeof codeMirrorControl.addExtension !== 'function') return;
+
+            // Keep this require inside the CM6-only branch. Legacy CodeMirror 5
+            // does not ship @codemirror/view, and Joplin still evaluates this
+            // content script while loading its editor plugins.
+            const { ViewPlugin } = require('@codemirror/view') as typeof import('@codemirror/view');
 
             const watcherExtension = ViewPlugin.fromClass(class {
                 private lastMode: VimMode | null = null;

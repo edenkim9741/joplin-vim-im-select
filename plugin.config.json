@@ -1,5 +1,6 @@
 {
     "extraScripts": [
-        "contentScripts/vimModeWatcher.ts"
+        "contentScripts/vimModeWatcher.ts",
+        "contentScripts/vimModeWatcherLegacy.ts"
     ]
 }

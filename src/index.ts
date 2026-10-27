@@ -5,7 +5,10 @@ import { isVimMode, normalizeVimMode } from './core/mode';
 import { InputMethodStateMachine } from './core/stateMachine';
 import { loadSettings, registerSettings } from './settings';
 
-const CONTENT_SCRIPT_ID = 'vim-im-select-mode-watcher';
+const CONTENT_SCRIPT_IDS = [
+    { id: 'vim-im-select-mode-watcher-cm6', path: './contentScripts/vimModeWatcher.js' },
+    { id: 'vim-im-select-mode-watcher-cm5', path: './contentScripts/vimModeWatcherLegacy.js' },
+];
 const stateMachine = new InputMethodStateMachine();
 let transitionQueue: Promise<void> = Promise.resolve();
 let warnedUnsupportedPlatform = false;
@@ -80,22 +83,20 @@ joplin.plugins.register({
     onStart: async () => {
         await registerSettings();
 
-        await joplin.contentScripts.onMessage(CONTENT_SCRIPT_ID, async (message: unknown) => {
-            transitionQueue = transitionQueue
-                .then(() => handleModeMessage(message))
-                .catch((error: unknown) => {
-                    console.error('[Vim IM Select] Mode transition failed:', error);
-                });
+        for (const { id, path } of CONTENT_SCRIPT_IDS) {
+            await joplin.contentScripts.onMessage(id, async (message: unknown) => {
+                transitionQueue = transitionQueue
+                    .then(() => handleModeMessage(message))
+                    .catch((error: unknown) => {
+                        console.error('[Vim IM Select] Mode transition failed:', error);
+                    });
 
-            await transitionQueue;
-            return null;
-        });
+                await transitionQueue;
+                return null;
+            });
 
-        await joplin.contentScripts.register(
-            ContentScriptType.CodeMirrorPlugin,
-            CONTENT_SCRIPT_ID,
-            './contentScripts/vimModeWatcher.js',
-        );
+            await joplin.contentScripts.register(ContentScriptType.CodeMirrorPlugin, id, path);
+        }
 
         console.info('[Vim IM Select] Plugin started.');
     },
